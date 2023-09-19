@@ -1,10 +1,8 @@
 package router
 
 import (
-	"fmt"
 	"net/http"
 
-	"github.com/gorilla/sessions"
 	echo "github.com/labstack/echo/v4"
 )
 
@@ -20,16 +18,20 @@ func (app *Application) createSessionMiddleware(next echo.HandlerFunc) echo.Hand
 	}
 }
 
-func (app *Application) alreadyLoggedIn(next echo.HandlerFunc) echo.HandlerFunc {
+func (app *Application) ifAlreadyLogined(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		session := c.Get("session").(*sessions.Session)
-
-		authenticated, ok := session.Values["authenticated"].(bool)
-		fmt.Println(authenticated)
-		if ok && authenticated {
-			return c.Redirect(http.StatusFound, "/meets/")
+		if alreadyLoggedIn(c) {
+			return c.Redirect(http.StatusFound, "/meets")
 		}
+		return next(c)
+	}
+}
 
+func (app *Application) ifNotLogined(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if !alreadyLoggedIn(c) {
+			return c.Redirect(http.StatusFound, "/")
+		}
 		return next(c)
 	}
 }

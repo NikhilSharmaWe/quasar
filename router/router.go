@@ -21,9 +21,9 @@ func (app *Application) Router() *echo.Echo {
 
 	e.Static("/assets", "./public")
 
-	e.GET("/", ServeHTML("./public/login/index.html"), app.alreadyLoggedIn)
-	e.GET("/signup", ServeHTML("./public/signup/index.html"), app.alreadyLoggedIn)
-	e.GET("/meets", ServeHTML("./public/meets/index.html"))
+	e.GET("/", ServeHTML("./public/login/index.html"), app.ifAlreadyLogined)
+	e.GET("/signup", ServeHTML("./public/signup/index.html"), app.ifAlreadyLogined)
+	e.GET("/meets", ServeHTML("./public/meets/index.html"), app.ifNotLogined)
 	e.GET("/logout", app.HandleLogout)
 
 	e.POST("/", app.HandleSignIn)

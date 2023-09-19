@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
@@ -67,4 +68,16 @@ func userFromForm(c echo.Context) (*model.User, error) {
 		Password:  bs,
 	}
 	return user, nil
+}
+
+func alreadyLoggedIn(c echo.Context) bool {
+	session := c.Get("session").(*sessions.Session)
+
+	authenticated, ok := session.Values["authenticated"].(bool)
+	fmt.Println(authenticated)
+	if ok && authenticated {
+		return true
+	}
+
+	return false
 }
