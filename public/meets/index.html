@@ -4,9 +4,46 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Document</title>
+	<style>
+		.logout-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #4CAF50; /* Match your form's button color */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px; /* Match your form's font size */
+        }
+
+        .logout-button:hover {
+            background-color: #45a049; /* Darker color on hover */
+        }
+		  /* .logout-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #4CAF50; 
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px; 
+        }
+
+        .logout-button:hover {
+            background-color: #45a049;
+        } */
+	</style>
 </head>
 <body>
-	<h1>Hello User {{.}}</h1>
-	<a href="/usermeet/">CLICK</a>
+	<form action="/logout/" method="get">
+		<div class="form-group">
+			<input type="submit" value="Logout" class="logout-button">
+		</div>
+	</form>
 </body>
 </html>
