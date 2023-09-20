@@ -34,10 +34,26 @@ func (u *User) Id() string {
 	return u.ID
 }
 
-func (r *GenericRepo[T]) SaveAccount(u *User) error {
-	un := u.Username
+type Meeting struct {
+	ID           string    `bson:"_id,omitempty"`
+	Name         string    `bson:"name"`
+	Organizer    string    `bson:"organizer"`
+	Participants []string  `bson:"participants"`
+	CreatedAt    time.Time `bson:"created_at"`
+	// StartAt      time.Time `bson:"start_at"`
+	// EndAt      time.Time `bson:"end_at"`
+	MeetingKey string `bson:"meeting_key"`
+}
 
-	exists, err := r.IsExistsByField("username", un)
+func (m *Meeting) Id() string {
+	return m.ID
+}
+
+func (r *GenericRepo[T]) SaveAccount(u *User) error {
+	filter := make(map[string]interface{})
+	filter["username"] = u.Username
+
+	exists, err := r.IsExists(filter)
 	if err != nil {
 		return err
 	}
@@ -46,7 +62,32 @@ func (r *GenericRepo[T]) SaveAccount(u *User) error {
 		return errors.New(AlreadyExistsErr)
 	}
 
-	doc, err := convertToBSON(u)
+	u.CreatedAt = time.Now()
+
+	return r.Save(u)
+}
+
+func (r *GenericRepo[T]) SaveMeeting(m *Meeting) error {
+	filter := make(map[string]interface{})
+	filter["name"] = m.Name
+	filter["organizer"] = m.Organizer
+
+	exists, err := r.IsExists(filter)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return errors.New(AlreadyExistsErr)
+	}
+
+	m.CreatedAt = time.Now()
+
+	return r.Save(m)
+}
+
+func (r *GenericRepo[T]) Save(model Model) error {
+	doc, err := convertToBSON(model)
 	if err != nil {
 		return err
 	}
@@ -102,13 +143,27 @@ func (r *GenericRepo[T]) Find(filters bson.M) ([]T, error) {
 	return res, err
 }
 
-func (r *GenericRepo[T]) IsExistsByField(field string, val any) (bool, error) {
+// func (r *GenericRepo[T]) IsExistsByField(field string, val any) (bool, error) {
+// 	collection, err := r.collection()
+// 	if err != nil {
+// 		return false, err
+// 	}
+
+// 	count, err := collection.CountDocuments(context.Background(), bson.M{field: val})
+// 	if err != nil {
+// 		return false, err
+// 	}
+
+// 	return count > 0, nil
+// }
+
+func (r *GenericRepo[T]) IsExists(filter map[string]interface{}) (bool, error) {
 	collection, err := r.collection()
 	if err != nil {
 		return false, err
 	}
 
-	count, err := collection.CountDocuments(context.Background(), bson.M{field: val})
+	count, err := collection.CountDocuments(context.Background(), filter)
 	if err != nil {
 		return false, err
 	}

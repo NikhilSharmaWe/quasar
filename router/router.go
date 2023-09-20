@@ -1,11 +1,14 @@
 package router
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/NikhilSharmaWe/quasar/model"
+	"github.com/gorilla/sessions"
 	echo "github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -28,6 +31,7 @@ func (app *Application) Router() *echo.Echo {
 
 	e.POST("/", app.HandleSignIn)
 	e.POST("/signup", app.HandleSignUp)
+	e.POST("/create-meeting", app.HandleCreateMeeting, app.ifNotLogined)
 
 	return e
 }
@@ -86,4 +90,27 @@ func (app *Application) HandleLogout(c echo.Context) error {
 	}
 
 	return c.Redirect(http.StatusSeeOther, "/")
+}
+
+func (app *Application) HandleCreateMeeting(c echo.Context) error {
+	session := c.Get("session").(*sessions.Session)
+	un := session.Values["username"].(string)
+	meetingName := c.FormValue("meeting-name")
+	meeting := &model.Meeting{
+		Name:         meetingName,
+		Organizer:    un,
+		MeetingKey:   uuid.NewV4().String(),
+		Participants: []string{un},
+	}
+
+	if err := app.MeetingRepo.SaveMeeting(meeting); err != nil {
+		if err.Error() == model.AlreadyExistsErr {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprint("you already have meeting named ", meetingName))
+		}
+
+		app.Logger.Println("error:", err)
+		return err
+	}
+
+	return c.Redirect(http.StatusSeeOther, "/meets/")
 }

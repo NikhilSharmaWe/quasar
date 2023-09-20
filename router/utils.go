@@ -2,7 +2,6 @@ package router
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 
@@ -17,6 +16,7 @@ type Application struct {
 	Context     context.Context
 	Logger      *log.Logger
 	UserRepo    *model.GenericRepo[model.User]
+	MeetingRepo *model.GenericRepo[model.Meeting]
 	CookieStore *sessions.CookieStore
 }
 
@@ -27,6 +27,9 @@ func NewApplication() *Application {
 		userRepo = model.GenericRepo[model.User]{
 			Collection: "user",
 		}
+		meetingRepo = model.GenericRepo[model.Meeting]{
+			Collection: "meeting",
+		}
 		cookieStore = sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET_KEY")))
 	)
 
@@ -34,6 +37,7 @@ func NewApplication() *Application {
 		Context:     ctx,
 		Logger:      logger,
 		UserRepo:    &userRepo,
+		MeetingRepo: &meetingRepo,
 		CookieStore: cookieStore,
 	}
 
@@ -74,7 +78,6 @@ func alreadyLoggedIn(c echo.Context) bool {
 	session := c.Get("session").(*sessions.Session)
 
 	authenticated, ok := session.Values["authenticated"].(bool)
-	fmt.Println(authenticated)
 	if ok && authenticated {
 		return true
 	}
