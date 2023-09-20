@@ -4,10 +4,12 @@ import (
 	"context"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/NikhilSharmaWe/quasar/model"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo/v4"
+	"github.com/pion/webrtc/v3"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -18,6 +20,9 @@ type Application struct {
 	UserRepo    *model.GenericRepo[model.User]
 	MeetingRepo *model.GenericRepo[model.Meeting]
 	CookieStore *sessions.CookieStore
+	sync.RWMutex
+	PeerConnections map[string]PeerConnectionState
+	TrackLocals     map[string]*webrtc.TrackLocalStaticRTP
 }
 
 func NewApplication() *Application {
@@ -30,15 +35,20 @@ func NewApplication() *Application {
 		meetingRepo = model.GenericRepo[model.Meeting]{
 			Collection: "meeting",
 		}
-		cookieStore = sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET_KEY")))
+		cookieStore     = sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET_KEY")))
+		peerConnections = make(map[string]PeerConnectionState)
+		trackLocals     = make(map[string]*webrtc.TrackLocalStaticRTP)
 	)
 
 	application := &Application{
-		Context:     ctx,
-		Logger:      logger,
-		UserRepo:    &userRepo,
-		MeetingRepo: &meetingRepo,
-		CookieStore: cookieStore,
+		Context:         ctx,
+		Logger:          logger,
+		UserRepo:        &userRepo,
+		MeetingRepo:     &meetingRepo,
+		CookieStore:     cookieStore,
+		PeerConnections: peerConnections,
+		TrackLocals:     trackLocals,
+		RWMutex:         sync.RWMutex{},
 	}
 
 	return application
@@ -58,7 +68,7 @@ func clearSessionHandler(c echo.Context) error {
 	return session.Save(c.Request(), c.Response())
 }
 
-func userFromForm(c echo.Context) (*model.User, error) {
+func userFromContext(c echo.Context) (*model.User, error) {
 	var user *model.User
 	bs, err := bcrypt.GenerateFromPassword([]byte(c.FormValue("password")), bcrypt.MinCost)
 	if err != nil {
@@ -74,8 +84,38 @@ func userFromForm(c echo.Context) (*model.User, error) {
 	return user, nil
 }
 
-func alreadyLoggedIn(c echo.Context) bool {
+func meetingFromContext(c echo.Context) (*model.Meeting, error) {
 	session := c.Get("session").(*sessions.Session)
+	un := session.Values["username"].(string)
+	meetingKey := uuid.NewV4().String()
+
+	meeting := &model.Meeting{
+		Organizer:  un,
+		MeetingKey: meetingKey,
+	}
+
+	return meeting, nil
+}
+
+func (app *Application) alreadyLoggedIn(c echo.Context) bool {
+	session := c.Get("session").(*sessions.Session)
+
+	username, ok := session.Values["username"].(string)
+	if !ok {
+		return false
+	}
+
+	filter := make(map[string]interface{})
+	filter["username"] = username
+
+	exists, err := app.UserRepo.IsExists(filter)
+	if err != nil {
+		return false
+	}
+
+	if !exists {
+		return false
+	}
 
 	authenticated, ok := session.Values["authenticated"].(bool)
 	if ok && authenticated {

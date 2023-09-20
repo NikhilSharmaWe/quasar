@@ -8,7 +8,7 @@ import (
 
 func (app *Application) createSessionMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		session, err := app.CookieStore.Get(c.Request(), "signin") // this will create the cookie if it does not exists
+		session, err := app.CookieStore.Get(c.Request(), "signin") // this will also create the cookie if it does not exists
 		if err != nil {
 			return err
 		}
@@ -18,18 +18,18 @@ func (app *Application) createSessionMiddleware(next echo.HandlerFunc) echo.Hand
 	}
 }
 
-func (app *Application) ifAlreadyLogined(next echo.HandlerFunc) echo.HandlerFunc {
+func (app *Application) IfAlreadyLogined(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		if alreadyLoggedIn(c) {
+		if app.alreadyLoggedIn(c) {
 			return c.Redirect(http.StatusFound, "/meets")
 		}
 		return next(c)
 	}
 }
 
-func (app *Application) ifNotLogined(next echo.HandlerFunc) echo.HandlerFunc {
+func (app *Application) IfNotLogined(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		if !alreadyLoggedIn(c) {
+		if !app.alreadyLoggedIn(c) {
 			return c.Redirect(http.StatusFound, "/")
 		}
 		return next(c)

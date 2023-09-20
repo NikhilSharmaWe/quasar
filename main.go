@@ -16,6 +16,11 @@ func init() {
 
 func main() {
 	app := router.NewApplication()
+	// t := &router.Template{
+	// 	Templates: template.Must(template.ParseGlob("./public/*.html")),
+	// }
+	// app.Template = t
+
 	mux := app.Router()
 	log.Fatal(mux.Start(":8080"))
 }

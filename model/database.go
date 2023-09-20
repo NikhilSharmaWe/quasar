@@ -35,11 +35,11 @@ func (u *User) Id() string {
 }
 
 type Meeting struct {
-	ID           string    `bson:"_id,omitempty"`
-	Name         string    `bson:"name"`
-	Organizer    string    `bson:"organizer"`
-	Participants []string  `bson:"participants"`
-	CreatedAt    time.Time `bson:"created_at"`
+	ID string `bson:"_id,omitempty"`
+	// Name         string    `bson:"name"`
+	Organizer string `bson:"organizer"`
+	// Participants []string  `bson:"participants"`
+	CreatedAt time.Time `bson:"created_at"`
 	// StartAt      time.Time `bson:"start_at"`
 	// EndAt      time.Time `bson:"end_at"`
 	MeetingKey string `bson:"meeting_key"`
@@ -68,18 +68,17 @@ func (r *GenericRepo[T]) SaveAccount(u *User) error {
 }
 
 func (r *GenericRepo[T]) SaveMeeting(m *Meeting) error {
-	filter := make(map[string]interface{})
-	filter["name"] = m.Name
-	filter["organizer"] = m.Organizer
+	// filter := make(map[string]interface{})
+	// filter["organizer"] = m.Organizer
 
-	exists, err := r.IsExists(filter)
-	if err != nil {
-		return err
-	}
+	// exists, err := r.IsExists(filter)
+	// if err != nil {
+	// 	return err
+	// }
 
-	if exists {
-		return errors.New(AlreadyExistsErr)
-	}
+	// if exists {
+	// 	return errors.New(AlreadyExistsErr)
+	// }
 
 	m.CreatedAt = time.Now()
 
