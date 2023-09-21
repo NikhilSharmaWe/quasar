@@ -3,11 +3,13 @@ package router
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"sync"
 
 	"github.com/NikhilSharmaWe/quasar/model"
 	"github.com/gorilla/sessions"
+	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/pion/webrtc/v3"
 	uuid "github.com/satori/go.uuid"
@@ -21,8 +23,15 @@ type Application struct {
 	MeetingRepo *model.GenericRepo[model.Meeting]
 	CookieStore *sessions.CookieStore
 	sync.RWMutex
-	PeerConnections map[string]PeerConnectionState
-	TrackLocals     map[string]*webrtc.TrackLocalStaticRTP
+	PeerConnections []PeerConnectionState
+	TrackLocals     map[string]TrackLocal
+	websocket.Upgrader
+}
+
+type TrackLocal struct {
+	MeetingKey string
+	Username   string
+	*webrtc.TrackLocalStaticRTP
 }
 
 func NewApplication() *Application {
@@ -36,8 +45,13 @@ func NewApplication() *Application {
 			Collection: "meeting",
 		}
 		cookieStore     = sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET_KEY")))
-		peerConnections = make(map[string]PeerConnectionState)
-		trackLocals     = make(map[string]*webrtc.TrackLocalStaticRTP)
+		peerConnections = []PeerConnectionState{}
+		trackLocals     = make(map[string]TrackLocal)
+		upgrader        = websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				return true
+			},
+		}
 	)
 
 	application := &Application{
@@ -49,6 +63,7 @@ func NewApplication() *Application {
 		PeerConnections: peerConnections,
 		TrackLocals:     trackLocals,
 		RWMutex:         sync.RWMutex{},
+		Upgrader:        upgrader,
 	}
 
 	return application

@@ -5,8 +5,10 @@ import (
 	"net/http"
 
 	"github.com/NikhilSharmaWe/quasar/model"
+	"github.com/gorilla/sessions"
 	echo "github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -24,8 +26,8 @@ func (app *Application) Router() *echo.Echo {
 	e.GET("/signup", ServeHTML("./public/signup/index.html"), app.IfAlreadyLogined)
 	e.GET("/meets", ServeHTML("./public/meets/index.html"), app.IfNotLogined)
 	e.GET("/logout", app.HandleLogout)
-	e.GET("/meets/:key", ServeHTML("./public/meeting/index.html"), app.IfNotLogined)
-	e.GET("/websocket", app.HandleCommunication)
+	e.GET("/meets/:key", app.HandleMeeting, app.IfNotLogined)
+	e.GET("/websocket", app.websocketHandler)
 
 	e.POST("/", app.HandleSignIn)
 	e.POST("/signup", app.HandleSignUp)
@@ -125,5 +127,20 @@ func (app *Application) HandleJoinMeeting(c echo.Context) error {
 }
 
 func (app *Application) HandleCommunication(c echo.Context) error {
+	return nil
+}
+
+func (app *Application) HandleMeeting(c echo.Context) error {
+	meetingKey := c.Param("key")
+
+	session := c.Get("session").(*sessions.Session)
+	session.ID = uuid.NewV4().String()
+	session.Values["meeting_key"] = meetingKey
+	session.Save(c.Request(), c.Response())
+
+	err := c.File("./public/meeting/index.html")
+	if err != nil {
+		return err
+	}
 	return nil
 }
