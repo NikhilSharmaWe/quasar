@@ -35,11 +35,11 @@ func (u *User) Id() string {
 }
 
 type Meeting struct {
-	ID string `bson:"_id,omitempty"`
+	ID        string    `bson:"_id,omitempty"`
+	CreatedAt time.Time `bson:"created_at"`
 	// Name         string    `bson:"name"`
 	Organizer string `bson:"organizer"`
 	// Participants []string  `bson:"participants"`
-	CreatedAt time.Time `bson:"created_at"`
 	// StartAt      time.Time `bson:"start_at"`
 	// EndAt      time.Time `bson:"end_at"`
 	MeetingKey string `bson:"meeting_key"`
@@ -47,6 +47,18 @@ type Meeting struct {
 
 func (m *Meeting) Id() string {
 	return m.ID
+}
+
+type Chat struct {
+	ID         string    `bson:"_id,omitempty"`
+	CreatedAt  time.Time `bson:"created_at"`
+	Username   string    `bson:"username"`
+	MeetingKey string    `bson:"meeting_key"`
+	Message    string    `bson:"message"`
+}
+
+func (c *Chat) Id() string {
+	return c.ID
 }
 
 func (r *GenericRepo[T]) SaveAccount(u *User) error {
@@ -62,28 +74,13 @@ func (r *GenericRepo[T]) SaveAccount(u *User) error {
 		return errors.New(AlreadyExistsErr)
 	}
 
-	u.CreatedAt = time.Now()
-
 	return r.Save(u)
 }
 
-func (r *GenericRepo[T]) SaveMeeting(m *Meeting) error {
-	// filter := make(map[string]interface{})
-	// filter["organizer"] = m.Organizer
-
-	// exists, err := r.IsExists(filter)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// if exists {
-	// 	return errors.New(AlreadyExistsErr)
-	// }
-
-	m.CreatedAt = time.Now()
-
-	return r.Save(m)
-}
+// func (r *GenericRepo[T]) SaveMeeting(m *Meeting) error {
+// 	m.CreatedAt = time.Now()
+// 	return r.Save(m)
+// }
 
 func (r *GenericRepo[T]) Save(model Model) error {
 	doc, err := convertToBSON(model)

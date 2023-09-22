@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/NikhilSharmaWe/quasar/model"
 	"github.com/gorilla/sessions"
@@ -27,7 +28,7 @@ func (app *Application) Router() *echo.Echo {
 	e.GET("/meets", ServeHTML("./public/meets/index.html"), app.IfNotLogined)
 	e.GET("/logout", app.HandleLogout)
 	e.GET("/meets/:key", app.HandleMeeting, app.IfNotLogined)
-	e.GET("/websocket", app.websocketHandler)
+	e.GET("/websocket", app.WebsocketHandler)
 
 	e.POST("/", app.HandleSignIn)
 	e.POST("/signup", app.HandleSignUp)
@@ -48,6 +49,8 @@ func (app *Application) HandleSignUp(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+
+	user.CreatedAt = time.Now()
 
 	if err := app.UserRepo.SaveAccount(user); err != nil {
 		if err.Error() == model.AlreadyExistsErr {
@@ -99,7 +102,9 @@ func (app *Application) HandleCreateMeeting(c echo.Context) error {
 		return err
 	}
 
-	if err := app.MeetingRepo.SaveMeeting(meeting); err != nil {
+	meeting.CreatedAt = time.Now()
+
+	if err := app.MeetingRepo.Save(meeting); err != nil {
 		app.Logger.Println("error:", err)
 		return err
 	}
@@ -124,10 +129,6 @@ func (app *Application) HandleJoinMeeting(c echo.Context) error {
 	}
 
 	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/meets/%s", meetingKey))
-}
-
-func (app *Application) HandleCommunication(c echo.Context) error {
-	return nil
 }
 
 func (app *Application) HandleMeeting(c echo.Context) error {

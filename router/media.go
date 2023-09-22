@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"time"
 
 	"github.com/gorilla/sessions"
 	"github.com/gorilla/websocket"
@@ -31,7 +30,7 @@ type ThreadSafeWriter struct {
 	*websocket.Conn
 }
 
-func (app *Application) websocketHandler(c echo.Context) error {
+func (app *Application) WebsocketHandler(c echo.Context) error {
 	unsafeConn, err := app.Upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
 		return err
@@ -88,7 +87,6 @@ func (app *Application) websocketHandler(c echo.Context) error {
 
 		candidateString, err := json.Marshal(i.ToJSON())
 		if err != nil {
-			log.Println("nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn")
 			log.Println(err)
 			return
 		}
@@ -97,7 +95,6 @@ func (app *Application) websocketHandler(c echo.Context) error {
 			Event: "candidate",
 			Data:  string(candidateString),
 		}); writeErr != nil {
-			fmt.Println("HHHHHH--------------------------------------------------")
 			log.Println(writeErr)
 		}
 	})
@@ -106,11 +103,9 @@ func (app *Application) websocketHandler(c echo.Context) error {
 		switch pcs {
 		case webrtc.PeerConnectionStateFailed:
 			if err := peerConnection.Close(); err != nil {
-				log.Println("/////////////////////////////////////")
 				log.Println(err)
 			}
 		case webrtc.PeerConnectionStateClosed:
-			log.Println("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\")
 			app.SignalPeerConnections()
 		}
 	})
@@ -175,11 +170,10 @@ func (app *Application) websocketHandler(c echo.Context) error {
 }
 
 func (app *Application) SignalPeerConnections() {
-	fmt.Println(len(app.PeerConnections))
 	app.Lock()
 	defer func() {
 		app.Unlock()
-		app.dispatchKeyFrame()
+		app.DispatchKeyFrame()
 	}()
 
 	attemptSync := func() (tryAgain bool) {
@@ -253,7 +247,6 @@ func (app *Application) SignalPeerConnections() {
 	for syncAttempt := 0; ; syncAttempt++ {
 		if syncAttempt == 25 {
 			go func() {
-				time.Sleep(3 * time.Second)
 				app.SignalPeerConnections()
 			}()
 
@@ -298,7 +291,7 @@ func (app *Application) removeTrack(t *webrtc.TrackLocalStaticRTP) {
 	delete(app.TrackLocals, t.ID())
 }
 
-func (app *Application) dispatchKeyFrame() {
+func (app *Application) DispatchKeyFrame() {
 	app.Lock()
 	defer app.Unlock()
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/NikhilSharmaWe/quasar/router"
 	"github.com/joho/godotenv"
@@ -16,11 +17,16 @@ func init() {
 
 func main() {
 	app := router.NewApplication()
-	// t := &router.Template{
-	// 	Templates: template.Must(template.ParseGlob("./public/*.html")),
-	// }
-	// app.Template = t
 
 	mux := app.Router()
+
+	go func() {
+		for range time.NewTicker(time.Second * 3).C {
+			app.DispatchKeyFrame()
+		}
+	}()
+
+	go app.HandleMessages()
+
 	log.Fatal(mux.Start(":8080"))
 }

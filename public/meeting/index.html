@@ -52,7 +52,7 @@
       document.getElementById('localVideo').srcObject = stream
       stream.getTracks().forEach(track => pc.addTrack(track, stream))
 
-      let ws = new WebSocket("ws://" + window.location.host + "/websocket")
+      let ws = new WebSocket("ws://" + window.location.host + "/websocket");
       pc.onicecandidate = e => {
         if (!e.candidate) {
           return
@@ -62,6 +62,7 @@
       }
 
       ws.onclose = function(evt) {
+        console.log("websocket connection closed")
         window.alert("Websocket has closed")
       }
 
