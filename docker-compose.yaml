@@ -1,0 +1,24 @@
+services: 
+  web: 
+    image: nikhilsharmawe/quasar
+    networks:
+      clusternetwork:
+        ipv4_address: 172.16.0.12
+    ports:
+      - "8080:8080" 
+    depends_on: 
+      - mongodb 
+  mongodb: 
+    image: mongo
+    ports: 
+      - "27017:27017" 
+    networks:
+      clusternetwork:
+        ipv4_address: 172.16.0.13
+networks:
+  clusternetwork:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.0.0/24
