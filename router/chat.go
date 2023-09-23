@@ -1,10 +1,12 @@
 package router
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/NikhilSharmaWe/quasar/model"
 	"github.com/gorilla/websocket"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func (app *Application) HandleMessages() {
@@ -20,26 +22,28 @@ func (app *Application) HandleMessages() {
 	}
 }
 
-// func (app *Application) sendOldChats(peerConnection) error {
-// 	filter := bson.M{
-// 		"meeting_key": meetingKey,
-// 	}
+func (app *Application) sendOldChats(pcState PeerConnectionState) error {
+	filter := bson.M{
+		"meeting_key": pcState.Key,
+	}
 
-// 	chats, err := app.ChatRepo.Find(filter)
-// 	if err != nil {
-// 		return err
-// 	}
+	chats, err := app.ChatRepo.Find(filter)
+	if err != nil {
+		return err
+	}
 
-// 	for _, chat := range chats {
+	for _, chat := range chats {
+		if err := app.messageClient(pcState, &chat); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-// 	}
-
-// }
-
-func (app *Application) messageClients(msg *model.Chat) error {
-	for _, peerConnection := range app.PeerConnections {
-		if peerConnection.Key == msg.MeetingKey {
-			err := app.messageClient(peerConnection.Websocket.Conn, msg)
+func (app *Application) messageClients(chat *model.Chat) error {
+	for _, pcState := range app.PeerConnections {
+		if pcState.Key == chat.MeetingKey {
+			err := app.messageClient(pcState, chat)
 			if err != nil {
 				return err
 			}
@@ -48,10 +52,15 @@ func (app *Application) messageClients(msg *model.Chat) error {
 	return nil
 }
 
-func (app *Application) messageClient(ws *websocket.Conn, message *model.Chat) error {
-	err := ws.WriteJSON(message)
+func (app *Application) messageClient(pcState PeerConnectionState, chat *model.Chat) error {
+	fmt.Println(*chat)
+	err := pcState.Websocket.WriteJSON(WebsocketMessage{
+		Event: "chat",
+		Chat:  *chat,
+	})
+	fmt.Printf("sending message to %s", pcState.Username)
 	if err != nil && unsafeError(err) {
-		ws.Close()
+		pcState.Websocket.Conn.Close()
 		return err
 	}
 	return nil

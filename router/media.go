@@ -6,6 +6,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/NikhilSharmaWe/quasar/model"
 	"github.com/gorilla/sessions"
 	"github.com/gorilla/websocket"
 	echo "github.com/labstack/echo/v4"
@@ -14,8 +15,9 @@ import (
 )
 
 type WebsocketMessage struct {
-	Event string `json:"event"`
-	Data  string `json:"data"`
+	Event string     `json:"event"`
+	Data  string     `json:"data"`
+	Chat  model.Chat `json:"chat"`
 }
 
 type PeerConnectionState struct {
@@ -66,72 +68,22 @@ func (app *Application) WebsocketHandler(c echo.Context) error {
 	}
 
 	session := c.Get("session").(*sessions.Session)
-	meetingKey := session.Values["meeting_key"].(string)
-	username := session.Values["username"].(string)
 
-	app.Lock()
-	app.PeerConnections = append(app.PeerConnections, PeerConnectionState{
-		Key:            meetingKey,
-		Username:       username,
+	pcState := PeerConnectionState{
+		Key:            session.Values["meeting_key"].(string),
+		Username:       session.Values["username"].(string),
 		PeerConnection: peerConnection,
 		Websocket:      conn,
-	})
+	}
+
+	app.Lock()
+	app.PeerConnections = append(app.PeerConnections, pcState)
 	app.Unlock()
 
-	// Trickle ICE. Emit server candidate to client
-	// this is called just after the new PeerConnection is created because in the configuration iceserver are specified even though we are not doing this here.
-	peerConnection.OnICECandidate(func(i *webrtc.ICECandidate) {
-		if i == nil {
-			return
-		}
+	app.configurePCEvents(&pcState)
+	app.signalPeerConnections()
 
-		candidateString, err := json.Marshal(i.ToJSON())
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		if writeErr := conn.WriteJSON(&WebsocketMessage{
-			Event: "candidate",
-			Data:  string(candidateString),
-		}); writeErr != nil {
-			log.Println(writeErr)
-		}
-	})
-
-	peerConnection.OnConnectionStateChange(func(pcs webrtc.PeerConnectionState) {
-		switch pcs {
-		case webrtc.PeerConnectionStateFailed:
-			if err := peerConnection.Close(); err != nil {
-				log.Println(err)
-			}
-		case webrtc.PeerConnectionStateClosed:
-			app.SignalPeerConnections()
-		}
-	})
-
-	peerConnection.OnTrack(func(tr *webrtc.TrackRemote, r *webrtc.RTPReceiver) {
-		// create a track to fan out our incoming video to all peers
-		trackLocal, err := app.addTrack(tr, meetingKey, username)
-		if err != nil {
-			return
-		}
-		defer app.removeTrack(trackLocal)
-
-		buf := make([]byte, 1500)
-		for {
-			i, _, err := tr.Read(buf)
-			if err != nil {
-				return
-			}
-
-			if _, err := trackLocal.Write(buf[:i]); err != nil {
-				return
-			}
-		}
-	})
-
-	app.SignalPeerConnections()
+	app.sendOldChats(pcState)
 
 	message := &WebsocketMessage{}
 	for {
@@ -165,11 +117,20 @@ func (app *Application) WebsocketHandler(c echo.Context) error {
 				log.Println(err)
 				return err
 			}
+
+		case "chat":
+			chat := model.Chat{
+				MeetingKey: pcState.Key,
+				Username:   pcState.Username,
+				Message:    message.Data,
+			}
+
+			app.Broadcaster <- &chat
 		}
 	}
 }
 
-func (app *Application) SignalPeerConnections() {
+func (app *Application) signalPeerConnections() {
 	app.Lock()
 	defer func() {
 		app.Unlock()
@@ -247,7 +208,7 @@ func (app *Application) SignalPeerConnections() {
 	for syncAttempt := 0; ; syncAttempt++ {
 		if syncAttempt == 25 {
 			go func() {
-				app.SignalPeerConnections()
+				app.signalPeerConnections()
 			}()
 
 			return
@@ -263,7 +224,7 @@ func (app *Application) addTrack(t *webrtc.TrackRemote, meetingKey, username str
 	app.Lock()
 	defer func() {
 		app.Unlock()
-		app.SignalPeerConnections()
+		app.signalPeerConnections()
 	}()
 
 	// here remote tracks are being converted to localtracks to be added to the server peerConnection are can be forwarding to other clients
@@ -285,7 +246,7 @@ func (app *Application) removeTrack(t *webrtc.TrackLocalStaticRTP) {
 	app.Lock()
 	defer func() {
 		app.Unlock()
-		app.SignalPeerConnections()
+		app.signalPeerConnections()
 	}()
 
 	delete(app.TrackLocals, t.ID())
@@ -315,4 +276,59 @@ func (t *ThreadSafeWriter) WriteJSON(v interface{}) error {
 	defer t.Unlock()
 
 	return t.Conn.WriteJSON(v)
+}
+
+func (app *Application) configurePCEvents(pcState *PeerConnectionState) {
+	// Trickle ICE. Emit server candidate to client
+	// this is called just after the new PeerConnection is created because in the configuration iceserver are specified even though we are not doing this here.
+	pcState.PeerConnection.OnICECandidate(func(i *webrtc.ICECandidate) {
+		if i == nil {
+			return
+		}
+
+		candidateString, err := json.Marshal(i.ToJSON())
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		if writeErr := pcState.Websocket.Conn.WriteJSON(&WebsocketMessage{
+			Event: "candidate",
+			Data:  string(candidateString),
+		}); writeErr != nil {
+			log.Println(writeErr)
+		}
+	})
+
+	pcState.PeerConnection.OnConnectionStateChange(func(pcs webrtc.PeerConnectionState) {
+		switch pcs {
+		case webrtc.PeerConnectionStateFailed:
+			if err := pcState.PeerConnection.Close(); err != nil {
+				log.Println(err)
+			}
+		case webrtc.PeerConnectionStateClosed:
+			app.signalPeerConnections()
+		}
+	})
+
+	pcState.PeerConnection.OnTrack(func(tr *webrtc.TrackRemote, r *webrtc.RTPReceiver) {
+		// create a track to fan out our incoming video to all peers
+		trackLocal, err := app.addTrack(tr, pcState.Key, pcState.Username)
+		if err != nil {
+			return
+		}
+		defer app.removeTrack(trackLocal)
+
+		buf := make([]byte, 1500)
+		for {
+			i, _, err := tr.Read(buf)
+			if err != nil {
+				return
+			}
+
+			if _, err := trackLocal.Write(buf[:i]); err != nil {
+				return
+			}
+		}
+	})
 }
