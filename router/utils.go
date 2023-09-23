@@ -26,6 +26,7 @@ type Application struct {
 	sync.RWMutex
 	PeerConnections []PeerConnectionState
 	TrackLocals     map[string]TrackLocal
+	StreamInfo      map[string]string
 	websocket.Upgrader
 	Broadcaster chan *model.Chat
 }
@@ -52,6 +53,7 @@ func NewApplication() *Application {
 		cookieStore     = sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET_KEY")))
 		peerConnections = []PeerConnectionState{}
 		trackLocals     = make(map[string]TrackLocal)
+		streamInfo      = make(map[string]string)
 		upgrader        = websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				return true
@@ -69,6 +71,7 @@ func NewApplication() *Application {
 		CookieStore:     cookieStore,
 		PeerConnections: peerConnections,
 		TrackLocals:     trackLocals,
+		StreamInfo:      streamInfo,
 		RWMutex:         sync.RWMutex{},
 		Upgrader:        upgrader,
 		Broadcaster:     broadcaster,

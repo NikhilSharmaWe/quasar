@@ -28,7 +28,7 @@ func (app *Application) Router() *echo.Echo {
 	e.GET("/meets", ServeHTML("./public/meets/index.html"), app.IfNotLogined)
 	e.GET("/logout", app.HandleLogout)
 	e.GET("/meets/:key", app.HandleMeeting, app.IfNotLogined)
-	e.GET("/websocket", app.WebsocketHandler)
+	e.GET("/websocket", app.WebsocketHandler, app.IfNotLogined)
 
 	e.POST("/", app.HandleSignIn)
 	e.POST("/signup", app.HandleSignUp)
@@ -120,7 +120,6 @@ func (app *Application) HandleJoinMeeting(c echo.Context) error {
 
 	exists, err := app.MeetingRepo.IsExists(filter)
 	if err != nil {
-		fmt.Println("Hello")
 		return err
 	}
 
