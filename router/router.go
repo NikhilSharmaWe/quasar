@@ -1,8 +1,10 @@
 package router
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/NikhilSharmaWe/quasar/model"
@@ -47,6 +49,7 @@ func ServeHTML(htmlPath string) echo.HandlerFunc {
 func (app *Application) HandleSignUp(c echo.Context) error {
 	user, err := userFromContext(c)
 	if err != nil {
+		c.Logger().Error(err)
 		return err
 	}
 
@@ -57,15 +60,21 @@ func (app *Application) HandleSignUp(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusBadRequest, "user already exists")
 		}
 
-		app.Logger.Println("error:", err)
+		c.Logger().Error(err)
 		return err
 	}
 
 	if err := setSession(c); err != nil {
+		c.Logger().Error(err)
 		return err
 	}
 
-	return c.Redirect(http.StatusSeeOther, "/meets/")
+	if err := c.Redirect(http.StatusSeeOther, "/meets/"); err != nil {
+		c.Logger().Error(err)
+		return err
+	}
+
+	return nil
 }
 
 func (app *Application) HandleSignIn(c echo.Context) error {
@@ -82,44 +91,77 @@ func (app *Application) HandleSignIn(c echo.Context) error {
 	}
 
 	if err := setSession(c); err != nil {
+		c.Logger().Error(err)
 		return err
 	}
 
-	return c.Redirect(http.StatusSeeOther, "/meets/")
+	if err := c.Redirect(http.StatusSeeOther, "/meets/"); err != nil {
+		c.Logger().Error(err)
+		return err
+	}
+
+	return nil
 }
 
 func (app *Application) HandleLogout(c echo.Context) error {
 	if err := clearSessionHandler(c); err != nil {
+		c.Logger().Error(err)
 		return err
 	}
 
-	return c.Redirect(http.StatusSeeOther, "/")
+	if err := c.Redirect(http.StatusSeeOther, "/"); err != nil {
+		c.Logger().Error(err)
+		return err
+	}
+
+	return nil
 }
 
 func (app *Application) HandleCreateMeeting(c echo.Context) error {
 	meeting, err := meetingFromContext(c)
 	if err != nil {
+		c.Logger().Error(err)
 		return err
 	}
 
 	meeting.CreatedAt = time.Now()
 
+	originalKey := meeting.MeetingKey
+	encodedKey := make([]byte, base64.StdEncoding.EncodedLen(len([]byte(originalKey))))
+	base64.StdEncoding.Encode(encodedKey, []byte(originalKey))
+
+	meeting.MeetingKey = string(encodedKey)
 	if err := app.MeetingRepo.Save(meeting); err != nil {
-		app.Logger.Println("error:", err)
+		c.Logger().Error(err)
 		return err
 	}
 
-	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/meets/%s", meeting.MeetingKey))
+	if err := c.Redirect(http.StatusSeeOther, fmt.Sprintf("/meets/%s", originalKey)); err != nil {
+		c.Logger().Error(err)
+		return err
+	}
+
+	return nil
 }
 
 func (app *Application) HandleJoinMeeting(c echo.Context) error {
 	meetingKey := c.FormValue("meeting-id")
+	lastIndex := strings.LastIndex(meetingKey, "/")
+
+	if lastIndex != -1 {
+		meetingKey = meetingKey[lastIndex+1:]
+	}
+
+	originalKey := meetingKey
+	encodedKey := make([]byte, base64.StdEncoding.EncodedLen(len([]byte(originalKey))))
+	base64.StdEncoding.Encode(encodedKey, []byte(originalKey))
 
 	filter := make(map[string]interface{})
-	filter["meeting_key"] = meetingKey
+	filter["meeting_key"] = string(encodedKey)
 
 	exists, err := app.MeetingRepo.IsExists(filter)
 	if err != nil {
+		c.Logger().Error(err)
 		return err
 	}
 
@@ -127,7 +169,12 @@ func (app *Application) HandleJoinMeeting(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid meeting key")
 	}
 
-	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/meets/%s", meetingKey))
+	if err := c.Redirect(http.StatusSeeOther, fmt.Sprintf("/meets/%s", meetingKey)); err != nil {
+		c.Logger().Error(err)
+		return nil
+	}
+
+	return nil
 }
 
 func (app *Application) HandleMeeting(c echo.Context) error {
@@ -138,9 +185,10 @@ func (app *Application) HandleMeeting(c echo.Context) error {
 	session.Values["meeting_key"] = meetingKey
 	session.Save(c.Request(), c.Response())
 
-	err := c.File("./public/meeting/index.html")
-	if err != nil {
+	if err := c.File("./public/meeting/index.html"); err != nil {
+		c.Logger().Error(err)
 		return err
 	}
+
 	return nil
 }

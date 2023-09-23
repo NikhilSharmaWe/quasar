@@ -35,14 +35,10 @@ func (u *User) Id() string {
 }
 
 type Meeting struct {
-	ID        string    `bson:"_id,omitempty"`
-	CreatedAt time.Time `bson:"created_at"`
-	// Name         string    `bson:"name"`
-	Organizer string `bson:"organizer"`
-	// Participants []string  `bson:"participants"`
-	// StartAt      time.Time `bson:"start_at"`
-	// EndAt      time.Time `bson:"end_at"`
-	MeetingKey string `bson:"meeting_key"`
+	ID         string    `bson:"_id,omitempty"`
+	CreatedAt  time.Time `bson:"created_at"`
+	Organizer  string    `bson:"organizer"`
+	MeetingKey string    `bson:"meeting_key"`
 }
 
 func (m *Meeting) Id() string {
@@ -76,11 +72,6 @@ func (r *GenericRepo[T]) SaveAccount(u *User) error {
 
 	return r.Save(u)
 }
-
-// func (r *GenericRepo[T]) SaveMeeting(m *Meeting) error {
-// 	m.CreatedAt = time.Now()
-// 	return r.Save(m)
-// }
 
 func (r *GenericRepo[T]) Save(model Model) error {
 	doc, err := convertToBSON(model)
@@ -138,20 +129,6 @@ func (r *GenericRepo[T]) Find(filters bson.M) ([]T, error) {
 	err = cur.All(context.Background(), &res)
 	return res, err
 }
-
-// func (r *GenericRepo[T]) IsExistsByField(field string, val any) (bool, error) {
-// 	collection, err := r.collection()
-// 	if err != nil {
-// 		return false, err
-// 	}
-
-// 	count, err := collection.CountDocuments(context.Background(), bson.M{field: val})
-// 	if err != nil {
-// 		return false, err
-// 	}
-
-// 	return count > 0, nil
-// }
 
 func (r *GenericRepo[T]) IsExists(filter map[string]interface{}) (bool, error) {
 	collection, err := r.collection()

@@ -2,7 +2,6 @@ package router
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -18,7 +17,6 @@ import (
 type WebsocketMessage struct {
 	Event string `json:"event"`
 	Data  any    `json:"data"`
-	// Chat  model.Chat `json:"chat"`
 }
 
 type PeerConnectionState struct {
@@ -39,10 +37,9 @@ func (app *Application) WebsocketHandler(c echo.Context) error {
 	username := session.Values["username"].(string)
 	meetingKey := session.Values["meeting_key"].(string)
 
-	fmt.Println("Username:", username)
-
 	unsafeConn, err := app.Upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
+		c.Logger().Error(err)
 		return err
 	}
 
@@ -54,10 +51,10 @@ func (app *Application) WebsocketHandler(c echo.Context) error {
 	})
 
 	if err != nil {
+		c.Logger().Error(err)
 		return err
 	}
 
-	// When this frame returns close the websocket
 	defer conn.Close()
 
 	peerConnection, err := webrtc.NewPeerConnection(webrtc.Configuration{
@@ -69,17 +66,17 @@ func (app *Application) WebsocketHandler(c echo.Context) error {
 		SDPSemantics: webrtc.SDPSemanticsUnifiedPlanWithFallback,
 	})
 	if err != nil {
+		c.Logger().Error(err)
 		return err
 	}
 
-	// When this frame returns close the PeerConnection
 	defer peerConnection.Close()
 
-	// Accept one audio and one video track incoming
 	for _, typ := range []webrtc.RTPCodecType{webrtc.RTPCodecTypeVideo, webrtc.RTPCodecTypeAudio} {
 		if _, err := peerConnection.AddTransceiverFromKind(typ, webrtc.RTPTransceiverInit{
 			Direction: webrtc.RTPTransceiverDirectionRecvonly,
 		}); err != nil {
+			c.Logger().Error(err)
 			return err
 		}
 	}
@@ -104,8 +101,10 @@ func (app *Application) WebsocketHandler(c echo.Context) error {
 	for {
 		_, raw, err := conn.ReadMessage()
 		if err != nil {
+			c.Logger().Error(err)
 			return err
 		} else if err := json.Unmarshal(raw, &message); err != nil {
+			c.Logger().Error(err)
 			return err
 		}
 
@@ -114,14 +113,16 @@ func (app *Application) WebsocketHandler(c echo.Context) error {
 			candidate := webrtc.ICECandidateInit{}
 			data, ok := message.Data.(string)
 			if !ok {
+				c.Logger().Error("unable to parse message data")
 				return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 			}
 			if err := json.Unmarshal([]byte(data), &candidate); err != nil {
+				c.Logger().Error(err)
 				return err
 			}
 
 			if err := peerConnection.AddICECandidate(candidate); err != nil {
-				log.Println(err)
+				c.Logger().Error(err)
 				return err
 			}
 
@@ -129,21 +130,23 @@ func (app *Application) WebsocketHandler(c echo.Context) error {
 			answer := webrtc.SessionDescription{}
 			data, ok := message.Data.(string)
 			if !ok {
+				c.Logger().Error("unable to parse message data")
 				return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 			}
 			if err := json.Unmarshal([]byte(data), &answer); err != nil {
-				log.Println(err)
+				c.Logger().Error(err)
 				return err
 			}
 
 			if err := peerConnection.SetRemoteDescription(answer); err != nil {
-				log.Println(err)
+				c.Logger().Error(err)
 				return err
 			}
 
 		case "chat":
 			data, ok := message.Data.(string)
 			if !ok {
+				c.Logger().Error("unable to parse message data")
 				return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 			}
 			chat := model.Chat{
@@ -187,7 +190,6 @@ func (app *Application) signalPeerConnections() {
 				}
 			}
 
-			// Don't receive videos we are sending, make sure we don't have loopback
 			for _, receiver := range app.PeerConnections[i].GetReceivers() {
 				if receiver.Track() == nil {
 					continue
@@ -196,7 +198,6 @@ func (app *Application) signalPeerConnections() {
 				existingSenders[receiver.Track().ID()] = true
 			}
 
-			// Add all the track we are not sending yet ** of the same meeting ** to the PeerConnection (here we just not add tracks of the peerConnection itself to prevent loop)
 			for trackID := range app.TrackLocals {
 				if app.TrackLocals[trackID].MeetingKey == app.PeerConnections[i].Key {
 					// && (app.TrackLocals[trackID].Username != app.PeerConnections[i].Username) {
@@ -245,7 +246,6 @@ func (app *Application) signalPeerConnections() {
 			break
 		}
 	}
-	fmt.Println(app.StreamInfo)
 }
 
 func (app *Application) addTrack(t *webrtc.TrackRemote, meetingKey, username string) (*webrtc.TrackLocalStaticRTP, error) {
@@ -257,7 +257,6 @@ func (app *Application) addTrack(t *webrtc.TrackRemote, meetingKey, username str
 
 	app.StreamInfo[t.StreamID()] = username
 
-	// here remote tracks are being converted to localtracks to be added to the server peerConnection are can be forwarding to other clients
 	trackLocal, err := webrtc.NewTrackLocalStaticRTP(t.Codec().RTPCodecCapability, t.ID(), t.StreamID())
 	if err != nil {
 		return nil, err
@@ -310,8 +309,6 @@ func (t *ThreadSafeWriter) WriteJSON(v interface{}) error {
 }
 
 func (app *Application) configurePCEvents(username, meetingKey string, pcState *PeerConnectionState) {
-	// Trickle ICE. Emit server candidate to client
-	// this is called just after the new PeerConnection is created because in the configuration iceserver are specified even though we are not doing this here.
 	pcState.PeerConnection.OnICECandidate(func(i *webrtc.ICECandidate) {
 		if i == nil {
 			return
@@ -343,27 +340,12 @@ func (app *Application) configurePCEvents(username, meetingKey string, pcState *
 	})
 
 	pcState.PeerConnection.OnTrack(func(tr *webrtc.TrackRemote, r *webrtc.RTPReceiver) {
-		fmt.Println("executing for:", username)
-		// create a track to fan out our incoming video to all peers
 		trackLocal, err := app.addTrack(tr, pcState.Key, pcState.Username)
 		if err != nil {
 			return
 		}
 
-		// app.messageClients()
-		// send this to all the message of same the key and not the same
-
 		app.messageClientsRemoteUserInfo(trackLocal.StreamID())
-		// app.messageClientsRemoteUserInfo(WebsocketMessage{
-		// 	Event: "participant",
-		// 	Data: struct {
-		// 		StreamID string
-		// 		Username string
-		// 	}{
-		// 		StreamID: tr.StreamID(),
-		// 		Username: username,
-		// 	},
-		// }, username, meetingKey)
 
 		defer app.removeTrack(trackLocal)
 

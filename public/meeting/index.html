@@ -1,207 +1,140 @@
-<!-- <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-  </head>
-  <style>
-    body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-        }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Meeting</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			background-color: #333; 
+			margin: 0;
+			padding: 0;
+			display: flex;
+			flex-direction: row;
+			height: 100vh;
+			overflow: hidden;
+		}
 
-        .sidebar {
-            width: 300px;
-            background-color: #f2f2f2;
-            padding: 20px;
-            box-shadow: 1px 0px 5px rgba(0, 0, 0, 0.1);
-        }
+		.sidebar {
+			width: 300px;
+			background-color: #ffffff; 
+			color: #fff;
+			padding: 20px;
+			box-shadow: 1px 0px 5px rgba(0, 0, 0, 0.1);
+		}
 
-        .chat-messages {
-            max-height: 400px; /* Adjust the max height as needed */
-            overflow-y: scroll;
-        }
+		.chat-container {
+			display: flex;
+			flex-direction: column;
+			flex-grow: 1;
+			padding: 20px;
+		}
 
-        .chat-input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-        }
-        .send-button {
-            width: 100%;
-            padding: 10px;
-            background-color: #007bff;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-        }
-  </style>
-  <body>
-    <h3> Local Video </h3>
-    <p id="your_username"></p>
-    <video id="localVideo" width="160" height="120" autoplay muted></video> <br />
+		.chat-messages {
+			flex-grow: 1;
+			max-height: 400px; 
+			overflow-y: scroll;
+			background-color: #555; 
+			padding: 20px; 
+			border-radius: 5px;
+			color: #fff; 
+			margin-top: 10px; 
+			margin-bottom: 10px; 
+		}
 
-    <h3> Remote Video </h3>
-    <div id="remoteVideos"></div> <br />
+		.chat-input-container {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			margin-top: 20px;
+		}
 
-    <h3> Logs </h3>
-    <div id="logs"></div>
+		.chat-input {
+			flex-grow: 1;
+			padding: 10px;
+			border: 1px solid #ccc;
+			border-radius: 5px;
+		}
 
-    <div class="sidebar">
-      <h3>Chat</h3>
-      <div class="chat-messages" id="chat-messages"> -->
-          <!-- Chat messages will be displayed here -->
-      <!-- </div>
-      <input type="text" class="chat-input" id="chat-input" placeholder="Type your message...">
-      <button class="send-button" id="send-button">Send</button>
-  </div>
+		.send-button {
+			margin-left: 10px;
+			padding: 10px 20px;
+			background-color: #4CAF50;
+			color: #fff;
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+		}
 
-  </body> -->
+		.video-container {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			flex-grow: 1;
+			padding: 20px;
+		}
 
+		.video-grid {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 20px;
+			justify-content: center;
+		}
 
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Impressive Video Conference</title>
-      <style>
-          body {
-              font-family: Arial, sans-serif;
-              background-color: #333; /* Dark background color */
-              margin: 0;
-              padding: 0;
-              display: flex;
-              flex-direction: row;
-              height: 100vh;
-              overflow: hidden;
-          }
-  
-          .sidebar {
-              width: 300px;
-              background-color: #ffffff; /* Dark sidebar background color */
-              color: #fff;
-              padding: 20px;
-              box-shadow: 1px 0px 5px rgba(0, 0, 0, 0.1);
-          }
-  
-          .chat-container {
-              display: flex;
-              flex-direction: column;
-              flex-grow: 1;
-              padding: 20px;
-          }
-  
-          .chat-messages {
-              flex-grow: 1;
-              max-height: 400px; /* Adjust the max height as needed */
-              overflow-y: scroll;
-              background-color: #555; /* Dark chat background color */
-              padding: 20px; /* Add padding for spacing */
-              border-radius: 5px;
-              color: #fff; /* Light text color */
-              margin-top: 10px; /* Add margin for spacing between messages */
-              margin-bottom: 10px; /* Add margin for spacing between messages */
-          }
-  
-          .chat-input-container {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              margin-top: 20px;
-          }
-  
-          .chat-input {
-              flex-grow: 1;
-              padding: 10px;
-              border: 1px solid #ccc;
-              border-radius: 5px;
-          }
-  
-          .send-button {
-              margin-left: 10px;
-              padding: 10px 20px;
-              background-color: #4CAF50;
-              color: #fff;
-              border: none;
-              border-radius: 5px;
-              cursor: pointer;
-          }
-  
-          .video-container {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              flex-grow: 1;
-              padding: 20px;
-          }
-  
-          .video-grid {
-              display: flex;
-              flex-wrap: wrap;
-              gap: 20px;
-              justify-content: center;
-          }
-  
-          video {
-              width: 160px; /* Set the desired video width */
-              height: 120px; /* Set the desired video height */
-              border-radius: 5px;
-              box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-          }
-  
-          h3 {
-              color: #fff; /* Light text color */
-          }
-      </style>
-  </head>
-  <body>
-      <div class="sidebar">
-          <h3>Chat</h3>
-          <div class="chat-container">
-              <div class="chat-messages" id="chat-messages">
-                  <!-- Chat messages will be displayed here -->
-                  <br>
-              </div>
-              <div class="chat-input-container">
-                  <input type="text" class="chat-input" id="chat-input" placeholder="Type your message...">
-                  <button class="send-button" id="send-button">Send</button>
-              </div>
-          </div>
-      </div>
-  
-      <div class="video-container">
-          <h3>Local Video</h3>
-          <p id="your_username"></p>
-          <video id="localVideo" width="160" height="120" autoplay muted></video> <br />
-  
-          <h3>Remote Videos</h3>
-          <div class="video-grid" id="remoteVideos"></div> <br />
-  
-          <h3>Logs</h3>
-          <div id="logs"></div>
-      </div>
-  
-  </body>
+		video {
+			width: 160px; 
+			height: 120px; 
+			border-radius: 5px;
+			box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+		}
 
-  <script>
-    
+		h3 {
+			color: #fff;
+		}
+	</style>
+</head>
+<body>
+	<div class="sidebar">
+    <p id="meeting_key" style="color: black;"></p>
+		<h3>Chat</h3>
+		<div class="chat-container">
+			<div class="chat-messages" id="chat-messages">
+				<!-- Chat messages will be displayed here -->
+				<br>
+			</div>
+			<div class="chat-input-container">
+				<input type="text" class="chat-input" id="chat-input" placeholder="Type your message...">
+				<button class="send-button" id="send-button">Send</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="video-container">
+		<p id="your_username" style="color: white;"></p>
+		<video id="localVideo" width="160" height="120" autoplay muted></video> <br />
+
+		<div class="video-grid" id="remoteVideos"></div> <br />
+	</div>
+	
+</body>
+<script>
+  window.addEventListener("DOMContentLoaded", (_) => { 
+    path = window.location.pathname;
+    key = path.replace("/meets/",'').replace("/",'');
+    let mk = document.getElementById("meeting_key");
+    mk.innerHTML = `<p><strong>Meeting ID: </strong>${key}</p>`;
 
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
     .then(stream => {
-
-      // const participantInfo = {};
 
       const chatInput = document.getElementById('chat-input');
       const chatButton = document.getElementById('send-button');
       const chatMessages = document.getElementById('chat-messages');
 
-      // Event handler for sending chat messages
       chatButton.addEventListener('click', () => {
         const message = chatInput.value;
         if (message.trim() !== '') {
-          // Send the message over the WebSocket
           ws.send(JSON.stringify({ event: 'chat', data: message }));
           chatInput.value = '';
         }
@@ -221,10 +154,10 @@
         if (event.track.kind === 'audio' || event.track.kind === 'video') {
             let streamID = event.streams[0].id;
             const pElement = document.createElement('p');
+            pElement.style.color = 'white';
             pElement.id = event.streams[0].id; // Use the streamID as the id
             document.getElementById('remoteVideos').appendChild(pElement);
 
-            // Rest of your code to handle the video track
             let el = document.createElement(event.track.kind);
             el.srcObject = event.streams[0];
             el.autoplay = true;
@@ -251,7 +184,6 @@
         const element = remoteVideoElements[streamId];
         if (element) {
           element.remove();
-          // delete remoteVideoElements[streamId]; // Remove the reference
         }
       }
 
@@ -313,7 +245,7 @@
             console.log(username + ":" + message)
 
             const messageElement = document.createElement('div');
-            messageElement.textContent = username + " : " + message;
+            messageElement.innerHTML = `<p><strong>${username}:</strong> ${message}</p>`;
             chatMessages.appendChild(messageElement);
             return
 
@@ -336,5 +268,6 @@
         console.log("ERROR: " + evt.data)
       }
     }).catch(window.alert)
-  </script>
+  });
+</script>
 </html>

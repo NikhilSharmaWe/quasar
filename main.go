@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"time"
 
 	"github.com/NikhilSharmaWe/quasar/router"
@@ -28,5 +29,5 @@ func main() {
 
 	go app.HandleMessages()
 
-	log.Fatal(mux.Start(":8080"))
+	log.Fatal(mux.Start(os.Getenv("ADDR")))
 }

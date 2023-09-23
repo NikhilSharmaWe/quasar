@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/NikhilSharmaWe/quasar/model"
@@ -33,7 +32,6 @@ func (app *Application) sendOldChats(pcState PeerConnectionState) error {
 	}
 
 	for _, chat := range chats {
-		fmt.Printf("old chat to user: %s message: %s\n", pcState.Username, chat.Message)
 		if err := app.messageClientChat(pcState, &chat); err != nil {
 			return err
 		}
@@ -59,22 +57,12 @@ func (app *Application) messageClientChat(pcState PeerConnectionState, data *mod
 		Data:  &data,
 	})
 
-	fmt.Printf("sending message to %s", pcState.Username)
 	if err != nil && unsafeError(err) {
 		pcState.Websocket.Conn.Close()
 		return err
 	}
 	return nil
 }
-
-type userinfo struct {
-	StreamID string
-	Username string
-}
-
-// modify this function such that it is run when a new user
-// enters a meeting and this function sends all the users streamid and username of the new user
-// and send the new user the stream id and username of everyone else
 
 func unsafeError(err error) bool {
 	return !websocket.IsCloseError(err, websocket.CloseGoingAway) && err != io.EOF
@@ -86,14 +74,13 @@ type ParticipantInfo struct {
 }
 
 func (app *Application) messageClientsRemoteUserInfo(latestStream string) error {
-	// send the new participant's info to all the present user in the meeting
-	newParticipantPCState := PeerConnectionState{}
 	newParticipantStreamID := latestStream
 	newParticipantUsername := app.StreamInfo[latestStream]
-	fmt.Println("newParticipantUsername:", newParticipantUsername)
+
 	for _, pcState := range app.PeerConnections {
+		// send the new participant info of all other participants in the meeting
 		if pcState.Username == newParticipantUsername {
-			newParticipantPCState = pcState
+			newParticipantPCState := pcState
 			for streamID, username := range app.StreamInfo {
 				if username == newParticipantUsername {
 					continue
@@ -111,6 +98,7 @@ func (app *Application) messageClientsRemoteUserInfo(latestStream string) error 
 			continue
 		}
 
+		// send all other participants info of the new one
 		if err := pcState.Websocket.WriteJSON(WebsocketMessage{
 			Event: "participant",
 			Data: ParticipantInfo{
