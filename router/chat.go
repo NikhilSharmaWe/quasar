@@ -82,9 +82,9 @@ func (app *Application) messageClientsRemoteUserInfo(latestStream string) error 
 		if pcState.Username == newParticipantUsername {
 			newParticipantPCState := pcState
 			for streamID, username := range app.StreamInfo {
-				if username == newParticipantUsername {
-					continue
-				}
+				// if username == newParticipantUsername {
+				// 	continue
+				// }
 				if err := newParticipantPCState.Websocket.WriteJSON(WebsocketMessage{
 					Event: "participant",
 					Data: ParticipantInfo{

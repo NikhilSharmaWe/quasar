@@ -2,6 +2,7 @@ package router
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -168,6 +169,7 @@ func (app *Application) signalPeerConnections() {
 	}()
 
 	attemptSync := func() (tryAgain bool) {
+		fmt.Println("Hello")
 		for i := range app.PeerConnections {
 			if app.PeerConnections[i].ConnectionState() == webrtc.PeerConnectionStateClosed {
 				app.PeerConnections = append(app.PeerConnections[:i], app.PeerConnections[i+1:]...)
@@ -199,6 +201,7 @@ func (app *Application) signalPeerConnections() {
 			}
 
 			for trackID := range app.TrackLocals {
+				fmt.Printf("tracklocal username: %s and peerConnection username: %s", app.TrackLocals[trackID].Username, app.PeerConnections[i].Username)
 				if app.TrackLocals[trackID].MeetingKey == app.PeerConnections[i].Key {
 					// && (app.TrackLocals[trackID].Username != app.PeerConnections[i].Username) {
 					if _, ok := existingSenders[trackID]; !ok {
