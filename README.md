@@ -5,5 +5,5 @@ Quasar is a **VIDEO + TEXT** chat application written in Go.
 
 ### Run Locally
 
-For running locally just run `docker compose up` from the repo.
+For running locally just run `docker compose up` with the [compose file](https://github.com/NikhilSharmaWe/quasar/blob/main/docker-compose.yaml) in repo.
 
