@@ -57,7 +57,18 @@ func (c *Chat) Id() string {
 	return c.ID
 }
 
+type Code struct {
+	ID         string `bson:"_id,omitempty"`
+	Code       string `bson:"code"`
+	MeetingKey string `bson:"meeting_key"`
+}
+
+func (c *Code) Id() string {
+	return c.ID
+}
+
 func (r *GenericRepo[T]) SaveAccount(u *User) error {
+
 	filter := make(map[string]interface{})
 	filter["username"] = u.Username
 
@@ -85,8 +96,26 @@ func (r *GenericRepo[T]) Save(model Model) error {
 	}
 
 	_, err = collection.InsertOne(context.Background(), doc)
-
 	return err
+}
+
+func (r *GenericRepo[T]) UpdateOne(filter interface{}, update interface{}) error {
+	collection, err := r.collection()
+	if err != nil {
+		return err
+	}
+
+	// doc, err := convertToBSON(model)
+	// if err != nil {
+	// 	return err
+	// }
+
+	_, err = collection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *GenericRepo[T]) Delete(filters bson.M) error {

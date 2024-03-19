@@ -1,23 +1,78 @@
 window.addEventListener("DOMContentLoaded", (_) => { 
     path = window.location.pathname;
+
     key = path.replace("/meets/",'').replace("/",'');
     let mk = document.getElementById("meeting_key");
     mk.innerHTML = `<p><strong>Meeting ID: </strong>${key}</p>`;
 
+    // textarea.addEventListener('input', function() {
+    //   console.log("HELOO")
+    //   const content = textarea.value;
+    //   sendUpdate(content);
+    // });
+    
+    // function sendUpdate(content) {
+    //   // const message = {
+    //   //   type: 'update',
+    //   //   content: content
+    //   // };
+    //   // ws.send(JSON.stringify(message));
+    //   ws.send(JSON.stringify({ event: 'code', data: JSON.stringify(content) }));
+    // }
+
+    function removeFirstLast(str) { 
+      return str.slice(1, -1); 
+    } 
+
+    function onTestChange() {
+      var key = window.event.keyCode;
+  
+      // If the user has pressed enter
+      if (key === 13) {
+          document.getElementById("txtArea").value = document.getElementById("txtArea").value + "\n*";
+          return false;
+      }
+      else {
+          return true;
+      }
+  }
+
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
     .then(stream => {
+
+      console.log("HEY")
 
       const chatInput = document.getElementById('chat-input');
       const chatButton = document.getElementById('send-button');
       const chatMessages = document.getElementById('chat-messages');
 
       chatButton.addEventListener('click', () => {
+        console.log("FFFFF")
         const message = chatInput.value;
         if (message.trim() !== '') {
           ws.send(JSON.stringify({ event: 'chat', data: message }));
           chatInput.value = '';
         }
       });
+
+      const textarea = document.getElementById('textarea');
+      textarea.addEventListener('input', function() {
+        console.log("HELOO")
+        const content = textarea.value;
+        
+        // content = content;
+        // sendUpdate(content);
+        ws.send(JSON.stringify({ event: 'code', data: JSON.stringify(content) }));
+
+      });
+
+      // $(".textarea").keypress(function(event) {
+      //   if (event.which == 13) {        
+      //        alert("Function is Called on Enter");
+      //     }
+ 
+      // });
+
 
       const config = {
         codec: 'vp8',
@@ -32,7 +87,7 @@ window.addEventListener("DOMContentLoaded", (_) => {
       pc.ontrack = function (event) {
         if (event.track.kind === 'audio' || event.track.kind === 'video') {
             let streamID = event.streams[0].id;
-            const pElement = document.createElement('p');
+            const pElement = document.createElement('span');
             pElement.style.color = 'white';
             pElement.id = event.streams[0].id; // Use the streamID as the id
             document.getElementById('remoteVideos').appendChild(pElement);
@@ -58,7 +113,7 @@ window.addEventListener("DOMContentLoaded", (_) => {
       }
 
       pc.onremovestream = function (event) {
-        console.log("removing")
+        // console.log("removing")
         const streamId = event.stream.id;
         const element = remoteVideoElements[streamId];
         if (element) {
@@ -69,7 +124,7 @@ window.addEventListener("DOMContentLoaded", (_) => {
 
       document.getElementById('localVideo').srcObject = stream
       stream.getTracks().forEach(track => pc.addTrack(track, stream))
-      console.log("local video data:", stream);
+      // console.log("local video data:", stream);
       let ws = new WebSocket("ws://" + window.location.host + "/websocket");
       pc.onicecandidate = e => {
         if (!e.candidate) {
@@ -80,7 +135,7 @@ window.addEventListener("DOMContentLoaded", (_) => {
       }
 
       ws.onclose = function(evt) {
-        console.log("websocket connection closed")
+        // console.log("websocket connection closed")
         window.alert("Websocket has closed")
       }
 
@@ -90,7 +145,9 @@ window.addEventListener("DOMContentLoaded", (_) => {
           return console.log('failed to parse msg')
         }
 
-        console.log(msg);
+        console.log(msg)
+
+        // console.log(msg);
         // console.log(participantInfo);
 
         switch (msg.event) {
@@ -99,7 +156,7 @@ window.addEventListener("DOMContentLoaded", (_) => {
             if (!offer) {
               return console.log('failed to parse answer')
             }
-            console.log("Recived offer")
+            // console.log("Recived offer")
             pc.setRemoteDescription(offer)
             pc.createAnswer().then(answer => {
               pc.setLocalDescription(answer)
@@ -121,17 +178,39 @@ window.addEventListener("DOMContentLoaded", (_) => {
             const message = chatData.Message;
             const username = chatData.Username;
 
-            console.log(username + ":" + message)
+            // console.log(username + ":" + message)
 
             const messageElement = document.createElement('div');
             messageElement.innerHTML = `<p><strong>${username}:</strong> ${message}</p>`;
             chatMessages.appendChild(messageElement);
             return
+          case 'code':
+            console.log("XXXXXXXXXXXXXXXXXXXXXXXXX")
+            const codeData = msg.data;
+            const code = codeData.Code;
+            console.log(code)
 
-          case 'my_username':
-            let un = document.getElementById("your_username");
-            un.innerHTML = msg.data;
+            // console.log(username + ":" + message)
+            var newline = String.fromCharCode(13, 10);
+            const x = removeFirstLast(code).replaceAll('\\n', newline);
+            const trimmedCode = x.replaceAll('\\', '');
+            // trimmedCode = x.replace('\\', '');
+            textarea.value = `${trimmedCode}`;
             return
+
+
+//             const jsonString = JSON.stringify(msg);
+//             const parsedData = JSON.parse(jsonString);
+
+// // Extract the value of the Code property
+//             const codeValue = parsedData.data.Code;
+//             console.log("HERE: ", codeValue)
+//             textarea.value = `${codeValue}`;
+
+          // case 'my_username':
+          //   let un = document.getElementById("your_username");
+          //   un.innerHTML = msg.data;
+          //   return
 
           case 'participant':
             const participantData = msg.data;

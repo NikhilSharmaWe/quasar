@@ -23,12 +23,18 @@
 	</div>
 
 	<div class="video-container">
-		<p id="your_username" style="color: white;"></p>
-		<video id="localVideo" width="160" height="120" autoplay muted></video> <br />
+		
+		<span class="video-grid" id="remoteVideos">
+			<span id="your_username" style="color: white;">You</span>
+			<video id="localVideo"  autoplay muted></video> 
+		</span> 
 
-		<div class="video-grid" id="remoteVideos"></div> <br />
+		<textarea id="textarea" rows="200" cols="50" style="margin-top:20px;"></textarea>
 	</div>
-	
+
+	<!-- <textarea id="textarea" rows="200" cols="50"></textarea> -->
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <script src="/assets/meeting/app.js"></script>
 </body>
 </html>

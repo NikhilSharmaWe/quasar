@@ -22,13 +22,14 @@ type Application struct {
 	UserRepo    *model.GenericRepo[model.User]
 	MeetingRepo *model.GenericRepo[model.Meeting]
 	ChatRepo    *model.GenericRepo[model.Chat]
+	CodeRepo    *model.GenericRepo[model.Code]
 	CookieStore *sessions.CookieStore
 	sync.RWMutex
 	PeerConnections []PeerConnectionState
 	TrackLocals     map[string]TrackLocal
 	StreamInfo      map[string]string
 	websocket.Upgrader
-	Broadcaster chan *model.Chat
+	Broadcaster chan interface{}
 }
 
 type TrackLocal struct {
@@ -50,6 +51,9 @@ func NewApplication() *Application {
 		chatRepo = model.GenericRepo[model.Chat]{
 			Collection: "chat",
 		}
+		codeRepo = model.GenericRepo[model.Code]{
+			Collection: "code",
+		}
 		cookieStore     = sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET_KEY")))
 		peerConnections = []PeerConnectionState{}
 		trackLocals     = make(map[string]TrackLocal)
@@ -59,7 +63,7 @@ func NewApplication() *Application {
 				return true
 			},
 		}
-		broadcaster = make(chan *model.Chat)
+		broadcaster = make(chan interface{})
 	)
 
 	application := &Application{
@@ -68,6 +72,7 @@ func NewApplication() *Application {
 		UserRepo:        &userRepo,
 		MeetingRepo:     &meetingRepo,
 		ChatRepo:        &chatRepo,
+		CodeRepo:        &codeRepo,
 		CookieStore:     cookieStore,
 		PeerConnections: peerConnections,
 		TrackLocals:     trackLocals,

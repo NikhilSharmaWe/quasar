@@ -157,6 +157,22 @@ func (app *Application) WebsocketHandler(c echo.Context) error {
 			}
 
 			app.Broadcaster <- &chat
+
+		case "code":
+			data, ok := message.Data.(string)
+			if !ok {
+				c.Logger().Error("unable to parse message data")
+				return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
+			}
+
+			code := model.Code{
+				MeetingKey: pcState.Key,
+				Code:       data,
+			}
+
+			app.Broadcaster <- &code
+
+			fmt.Println("CODE:", data)
 		}
 	}
 }
