@@ -50,6 +50,17 @@ body {
 	border-radius: 5px;
 }
 
+.code-output {
+	position: fixed;
+	bottom: 0;
+	left: 50%;
+	width: 40%;
+	background-color: #f0f0f0; /* Light gray background */
+	border: 1px solid #ccc; /* Gray border */
+	padding: 10px; /* Add some padding */
+	box-sizing: border-box; /* Include padding in the width */
+  }
+
 .send-button {
 	margin-left: 10px;
 	padding: 10px 20px;

@@ -1,15 +1,18 @@
 package router
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/NikhilSharmaWe/quasar/model"
 	"github.com/gorilla/sessions"
 	"github.com/gorilla/websocket"
+	"github.com/kluctl/go-embed-python/python"
 	echo "github.com/labstack/echo/v4"
 	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v3"
@@ -173,8 +176,58 @@ func (app *Application) WebsocketHandler(c echo.Context) error {
 			app.Broadcaster <- &code
 
 			fmt.Println("CODE:", data)
+
+		case "compile":
+			data, ok := message.Data.(string)
+			if !ok {
+				c.Logger().Error("unable to parse message data")
+				return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
+			}
+
+			result := data[1 : len(data)-1]
+			newStr := strings.Replace(result, "\\n", "\n", -1)
+			newStr = strings.ReplaceAll(newStr, "\\", "")
+			// fmt.Println("COMPILE:", data)
+			compilePythonAndSend(newStr, conn)
 		}
 	}
+}
+
+func compilePythonAndSend(code string, conn *ThreadSafeWriter) {
+	ep, err := python.NewEmbeddedPython("example")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("")
+	cmd := ep.PythonCmd("-c", code)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Start(); err != nil {
+		panic(err)
+	}
+
+	var output string
+	// Wait for command to complete
+	if err := cmd.Wait(); err != nil {
+		// If there's an error, print stderr
+		// fmt.Println("Error:", stderr.String())
+		output = stderr.String()
+		// fmt.Println("Stderr:", stderr.String())
+	} else {
+		// If command completes successfully, print stdout
+		// fmt.Println("Output:", stdout.String())
+		output = stdout.String()
+	}
+
+	if err = conn.WriteJSON(&WebsocketMessage{
+		Event: "output",
+		Data:  output,
+	}); err != nil {
+		log.Println("Error:", err)
+	}
+
 }
 
 func (app *Application) signalPeerConnections() {

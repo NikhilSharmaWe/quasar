@@ -1,4 +1,7 @@
+
 window.addEventListener("DOMContentLoaded", (_) => { 
+  // const {PythonShell} =require('python-shell');
+
     path = window.location.pathname;
 
     key = path.replace("/meets/",'').replace("/",'');
@@ -45,6 +48,7 @@ window.addEventListener("DOMContentLoaded", (_) => {
       const chatInput = document.getElementById('chat-input');
       const chatButton = document.getElementById('send-button');
       const chatMessages = document.getElementById('chat-messages');
+      const codeOutput = document.getElementById('code-output');
 
       chatButton.addEventListener('click', () => {
         console.log("FFFFF")
@@ -65,6 +69,16 @@ window.addEventListener("DOMContentLoaded", (_) => {
         ws.send(JSON.stringify({ event: 'code', data: JSON.stringify(content) }));
 
       });
+
+      document.getElementById("run").addEventListener('click', function() {
+        const content = textarea.value;
+        console.log("COMPILE", content)
+        
+        // content = content;
+        // sendUpdate(content);
+        ws.send(JSON.stringify({ event: 'compile', data: JSON.stringify(content) }));
+      });
+  
 
       // $(".textarea").keypress(function(event) {
       //   if (event.which == 13) {        
@@ -121,6 +135,7 @@ window.addEventListener("DOMContentLoaded", (_) => {
         }
       }
 
+      
 
       document.getElementById('localVideo').srcObject = stream
       stream.getTracks().forEach(track => pc.addTrack(track, stream))
@@ -197,6 +212,13 @@ window.addEventListener("DOMContentLoaded", (_) => {
             // trimmedCode = x.replace('\\', '');
             textarea.value = `${trimmedCode}`;
             return
+          
+          case 'output':
+            const outputData = msg.data;
+            console.log("OUTPUT: ", outputData)
+            codeOutput.innerHTML = `<p>${outputData}</p>`;
+
+
 
 
 //             const jsonString = JSON.stringify(msg);
