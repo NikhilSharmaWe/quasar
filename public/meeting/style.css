@@ -51,9 +51,12 @@ body {
 }
 
 .code-output {
-	position: fixed;
+	/* position: fixed; */
+	position: absolute;
 	bottom: 0;
-	left: 50%;
+	left: 40%;
+	transform: translateX(10%);
+	/* translate: ; */
 	width: 40%;
 	background-color: #f0f0f0; /* Light gray background */
 	border: 1px solid #ccc; /* Gray border */
@@ -100,3 +103,13 @@ h3 {
 /* #localVideo{
 	display: inline;
 } */
+#run{
+margin-left: 10px;
+	padding: 10px 20px;
+	background-color: #4CAF50;
+	color: #fff;
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+	font-weight: 800;
+}
